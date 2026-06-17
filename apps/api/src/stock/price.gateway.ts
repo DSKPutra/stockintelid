@@ -5,7 +5,7 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { StockService } from './stock.service';
+import { PriceProviderService } from './price-provider.service';
 
 @WebSocketGateway({
   path: '/ws/price',
@@ -18,7 +18,7 @@ export class PriceGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private activeTickers = new Set<string>();
   private intervalId: NodeJS.Timeout | null = null;
 
-  constructor(private readonly stockService: StockService) {}
+  constructor(private readonly priceProvider: PriceProviderService) {}
 
   handleConnection(client: any) {
     console.log(`[WEBSOCKET] Client terhubung: ${client.id || 'anonymous'}`);
@@ -61,8 +61,10 @@ export class PriceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      for (const ticker of this.activeTickers) {
-        await this.sendQuoteUpdate(ticker);
+      // Streaming batch lewat PriceProvider (env PRICE_PROVIDER).
+      const quotes = await this.priceProvider.getQuotesBatch([...this.activeTickers]);
+      for (const quote of quotes) {
+        this.broadcast({ event: 'priceUpdate', data: quote });
       }
     }, 2000);
   }
@@ -77,19 +79,22 @@ export class PriceGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private async sendQuoteUpdate(ticker: string) {
     try {
-      const quote = await this.stockService.getQuote(ticker);
-      const message = JSON.stringify({ event: 'priceUpdate', data: quote });
-      
-      // Kirim ke semua client yang tersambung
-      if (this.server && this.server.clients) {
-        this.server.clients.forEach((client: any) => {
-          if (client.readyState === 1) { // OPEN state
-            client.send(message);
-          }
-        });
-      }
+      const quote = await this.priceProvider.getQuote(ticker);
+      this.broadcast({ event: 'priceUpdate', data: quote });
     } catch (e) {
       console.error(`[WEBSOCKET] Error saat update harga ${ticker}:`, e);
+    }
+  }
+
+  // Kirim payload JSON ke semua client WebSocket yang tersambung.
+  private broadcast(payload: { event: string; data: unknown }) {
+    const message = JSON.stringify(payload);
+    if (this.server && this.server.clients) {
+      this.server.clients.forEach((client: any) => {
+        if (client.readyState === 1) {
+          client.send(message);
+        }
+      });
     }
   }
 }
