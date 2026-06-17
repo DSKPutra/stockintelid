@@ -57,6 +57,7 @@ export const stockApi = {
   getInvestorProfile: (name: string) => apiRequest<any>(`/stocks/investors/${encodeURIComponent(name)}`),
   getMutualFunds: () => apiRequest<any[]>('/stocks/mutual-funds'),
   getFloatScreener: () => apiRequest<any[]>('/stocks/screener/float'),
+  getHeatmap: () => apiRequest<{ asOf: string; sectors: any[] }>('/stocks/heatmap'),
   
   // Watchlist
   getWatchlist: () => apiRequest<string[]>('/stocks/watchlist/list'),

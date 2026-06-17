@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { getThemeColors, useAppStore } from '../store';
 import { stockApi } from '../api';
+import { MarketHeatmap } from '../components/MarketHeatmap';
 
 export const SectorsScreen: React.FC = () => {
   const { theme, setScreen } = useAppStore();
@@ -79,6 +80,10 @@ export const SectorsScreen: React.FC = () => {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[styles.title, { color: colors.textPrimary }]}>📊 Analisis Sektor IDX-IC</Text>
+
+      {/* Heatmap Pasar Kustom: ukuran by market cap, warna by performa */}
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Heatmap Pasar (Ukuran by Market Cap)</Text>
+      <MarketHeatmap onSelectTicker={(ticker) => setScreen('STOCK_DETAIL', { ticker })} />
 
       {/* Grid Heatmap Performa Sektor */}
       <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Heatmap Performa Sektoral</Text>
