@@ -16,6 +16,7 @@ import {
   MockMarketDataProvider,
   MutualFund,
   UniversalSearchResult,
+  computeFreeFloat,
 } from '@idx/shared';
 
 @Injectable()
@@ -542,41 +543,73 @@ export class StockService implements OnModuleInit, OnModuleDestroy {
     return this.mockProvider.getMutualFunds();
   }
 
-  // 4. Float Screener
+  // 4. Float Screener — metode MSCI dari paket bersama (teruji unit).
   async getFloatScreener(): Promise<any[]> {
     const stocks = await this.getStocks();
     const screenerResults: any[] = [];
 
     for (const s of stocks) {
       const holders = await this.getShareholders(s.ticker);
-      
-      // Hitung kepemilikan strategis (non-free float)
-      // strategic holders = Corporate, Individual, Government, Foundation, atau isController = true (Kecuali ritel/masyarakat)
-      const strategicHolders = holders.filter(
-        h => (h.isController || ['Corporate', 'Individual', 'Government', 'Foundation'].includes(h.holderType)) && 
-             !h.holderName.includes('Masyarakat')
-      );
-
-      const strategicPct = strategicHolders.reduce((sum, h) => sum + h.pct, 0);
-      const freeFloatPct = parseFloat((100 - strategicPct).toFixed(2));
-      const topHolder = holders[0]?.holderName || 'Masyarakat';
-      
-      let riskLevel = 'Low';
-      if (freeFloatPct < 20) riskLevel = 'High';
-      else if (freeFloatPct < 40) riskLevel = 'Medium';
+      const float = computeFreeFloat(holders);
 
       screenerResults.push({
         ticker: s.ticker,
         name: s.name,
         sectorCode: s.sectorCode,
         marketCap: s.marketCap,
-        strategicPct,
-        freeFloatPct,
-        topHolder,
-        riskLevel,
+        strategicPct: float.strategicPct,
+        freeFloatPct: float.freeFloatPct,
+        topHolder: float.topHolder,
+        topHoldersAbove1: float.topHoldersAbove1,
+        riskLevel: float.riskLevel,
       });
     }
 
     return screenerResults;
+  }
+
+  // 5. Market Heatmap kustom (ukuran by market cap + performa) dikelompokkan per sektor.
+  async getMarketHeatmap(): Promise<{
+    asOf: string;
+    sectors: {
+      code: string;
+      nameId: string;
+      tiles: { ticker: string; name: string; marketCap: number; changePercent: number }[];
+    }[];
+  }> {
+    const stocks = await this.getStocks();
+    const sectorList = await this.getSectorList();
+    const sectorName = new Map(sectorList.map((s) => [s.code, s.nameId]));
+
+    const bySector = new Map<
+      string,
+      { ticker: string; name: string; marketCap: number; changePercent: number }[]
+    >();
+    for (const s of stocks) {
+      const quote = await this.getQuote(s.ticker);
+      const tile = {
+        ticker: s.ticker,
+        name: s.name,
+        marketCap: s.marketCap,
+        changePercent: quote.changePercent,
+      };
+      const arr = bySector.get(s.sectorCode) ?? [];
+      arr.push(tile);
+      bySector.set(s.sectorCode, arr);
+    }
+
+    const sectors = Array.from(bySector.entries())
+      .map(([code, tiles]) => ({
+        code,
+        nameId: sectorName.get(code) ?? code,
+        tiles: tiles.sort((a, b) => b.marketCap - a.marketCap),
+      }))
+      .sort(
+        (a, b) =>
+          b.tiles.reduce((s, t) => s + t.marketCap, 0) -
+          a.tiles.reduce((s, t) => s + t.marketCap, 0),
+      );
+
+    return { asOf: new Date().toISOString(), sectors };
   }
 }

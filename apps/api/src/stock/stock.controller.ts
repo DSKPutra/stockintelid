@@ -43,6 +43,12 @@ export class StockController {
     return this.stockService.getFloatScreener();
   }
 
+  // ---- Baru: Market Heatmap kustom (by market cap, per sektor) ----
+  @Get('heatmap')
+  async getHeatmap() {
+    return this.stockService.getMarketHeatmap();
+  }
+
   @Get('sectors')
   async getSectors() {
     return this.stockService.getSectorList();
