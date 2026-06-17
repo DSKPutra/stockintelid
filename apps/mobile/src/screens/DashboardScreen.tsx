@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { getThemeColors, useAppStore } from '../store';
 import { stockApi } from '../api';
+import { formatRupiah, formatPercent } from '@idx/shared';
 
 export const DashboardScreen: React.FC = () => {
   const { theme, setScreen, watchlist, toggleWatchlistLocal } = useAppStore();
@@ -76,10 +77,10 @@ export const DashboardScreen: React.FC = () => {
       <View style={[styles.ihsgContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View>
           <Text style={[styles.ihsgLabel, { color: colors.textSecondary }]}>IHSG (Indeks Harga Saham Gabungan)</Text>
-          <Text style={[styles.ihsgValue, { color: colors.textPrimary }]}>7,185.34</Text>
+          <Text style={[styles.ihsgValue, { color: colors.textPrimary }]}>7.185,34</Text>
         </View>
         <View style={styles.ihsgRight}>
-          <Text style={[styles.ihsgChange, { color: colors.success }]}>+38.12 (+0.53%)</Text>
+          <Text style={[styles.ihsgChange, { color: colors.success }]}>+38,12 (+0,53%)</Text>
           <Text style={[styles.ihsgTime, { color: colors.textMuted }]}>Terakhir Diperbarui: Hari Ini</Text>
         </View>
       </View>
@@ -106,9 +107,9 @@ export const DashboardScreen: React.FC = () => {
                       <Text style={[styles.nameText, { color: colors.textMuted }]} numberOfLines={1}>{stock.name}</Text>
                     </View>
                     <View style={styles.rowRight}>
-                      <Text style={[styles.priceText, { color: colors.textPrimary }]}>Rp {q.price}</Text>
+                      <Text style={[styles.priceText, { color: colors.textPrimary }]}>{formatRupiah(q.price)}</Text>
                       <Text style={[styles.changePercentText, { color: q.changePercent >= 0 ? colors.success : colors.danger }]}>
-                        {q.changePercent >= 0 ? '+' : ''}{q.changePercent}%
+                        {formatPercent(q.changePercent)}
                       </Text>
                     </View>
                   </Pressable>
@@ -138,8 +139,8 @@ export const DashboardScreen: React.FC = () => {
                     <Text style={[styles.nameMiniText, { color: colors.textMuted }]} numberOfLines={1}>{s.name}</Text>
                   </View>
                   <View style={styles.rowRight}>
-                    <Text style={[styles.priceMiniText, { color: colors.textPrimary }]}>Rp {q.price}</Text>
-                    <Text style={[styles.pctMiniText, { color: colors.success }]}>+{q.changePercent}%</Text>
+                    <Text style={[styles.priceMiniText, { color: colors.textPrimary }]}>{formatRupiah(q.price)}</Text>
+                    <Text style={[styles.pctMiniText, { color: colors.success }]}>{formatPercent(q.changePercent)}</Text>
                   </View>
                 </Pressable>
               );
@@ -162,8 +163,8 @@ export const DashboardScreen: React.FC = () => {
                     <Text style={[styles.nameMiniText, { color: colors.textMuted }]} numberOfLines={1}>{s.name}</Text>
                   </View>
                   <View style={styles.rowRight}>
-                    <Text style={[styles.priceMiniText, { color: colors.textPrimary }]}>Rp {q.price}</Text>
-                    <Text style={[styles.pctMiniText, { color: colors.danger }]}>{q.changePercent}%</Text>
+                    <Text style={[styles.priceMiniText, { color: colors.textPrimary }]}>{formatRupiah(q.price)}</Text>
+                    <Text style={[styles.pctMiniText, { color: colors.danger }]}>{formatPercent(q.changePercent)}</Text>
                   </View>
                 </Pressable>
               );
@@ -184,7 +185,7 @@ export const DashboardScreen: React.FC = () => {
             >
               <Text style={[styles.sectorName, { color: colors.textPrimary }]}>{sec.nameId}</Text>
               <Text style={[styles.sectorPerf, { color: sec.performance >= 0 ? colors.success : colors.danger }]}>
-                {sec.performance >= 0 ? '+' : ''}{sec.performance}%
+                {formatPercent(sec.performance)}
               </Text>
               <Text style={[styles.sectorPe, { color: colors.textMuted }]}>PE Rata-rata: {sec.avgPe}x</Text>
             </Pressable>

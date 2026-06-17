@@ -5,9 +5,12 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "watch": "tsc -w"
+    "watch": "tsc -w",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --import tsx \"src/**/*.test.ts\""
   },
   "devDependencies": {
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
 }

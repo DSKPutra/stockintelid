@@ -6,6 +6,18 @@ Aplikasi analisa saham Bursa Efek Indonesia (IDX) premium berbasis **cross-platf
 
 ---
 
+## ✅ Status Milestone
+
+| Milestone | Cakupan | Status |
+|-----------|---------|--------|
+| **M1 — Fondasi** | Monorepo, paket bersama, provider data mock, API NestJS (REST + WebSocket + Swagger), auth OTP/JWT, app Expo (web+mobile), tema dark/light, i18n ID/EN, formatter id-ID, dashboard end-to-end | ✅ Selesai & terverifikasi jalan |
+| **M2 — Data inti** | Detail saham (chart/fundamental/laporan keuangan), watchlist, DB Postgres/Timescale | 🟡 UI & endpoint tersedia |
+| **M3 — Ownership & Sektor** | Kepemilikan, per-konglomerat, analisa sektor, visualisasi | 🟡 Layar & data tersedia |
+| **M4 — Screener & Chatbot** | Screener, chatbot (ringkasan+reasoning+tabel+chart+disclaimer) | 🟡 Endpoint & layar tersedia |
+| **M5 — Hardening** | Test menyeluruh, optimasi, build web + EAS mobile | ⬜ Belum |
+
+---
+
 ## 🏗️ Struktur Arsitektur Monorepo
 
 Proyek ini dibangun menggunakan struktur **npm workspaces monorepo** terintegrasi:
@@ -77,6 +89,7 @@ Pastikan perangkat Anda telah terinstall:
    npm run dev
    ```
    - **Backend API:** Berjalan di `http://localhost:4000/api`
+   - **Dokumentasi API (Swagger/OpenAPI):** `http://localhost:4000/api/docs`
    - **Frontend Expo Web:** Terbuka di browser Anda pada port `http://localhost:8081` (atau port terdekat yang tersedia).
    - **Mobile Device:** Buka aplikasi **Expo Go** pada perangkat iOS/Android Anda, lalu pindai QR Code yang tercetak di terminal untuk membukanya secara native.
 
@@ -84,22 +97,23 @@ Pastikan perangkat Anda telah terinstall:
 
 ## 🚀 Panduan Deploy / Push ke GitHub Anda
 
-Karena repositori Git lokal telah diinisialisasi dan di-commit pertama kali (`feat: complete IDX Stock Analyzer monorepo`), Anda hanya perlu mengunggahnya ke GitHub dengan langkah berikut:
+Direktori ini **belum** menjadi repositori Git. Untuk mengunggahnya ke GitHub:
 
-1. Buat sebuah repositori baru di akun GitHub Anda (misal beri nama `idx-stock-analyzer`). Jangan centang inisialisasi README atau `.gitignore` karena berkas-berkas tersebut sudah tersedia di lokal.
-2. Salin URL repositori GitHub baru Anda (berformat `https://github.com/USERNAME/idx-stock-analyzer.git`).
-3. Jalankan perintah berikut di terminal komputer Anda (di direktori proyek ini):
+1. Inisialisasi Git dan buat commit pertama di direktori proyek ini:
    ```bash
-   # 1. Daftarkan remote URL GitHub Anda sebagai 'origin'
-   git remote add origin https://github.com/USERNAME/idx-stock-analyzer.git
-
-   # 2. Setel nama branch utama menjadi 'main'
+   git init
+   git add .
+   git commit -m "feat: IDX Stock Analyzer monorepo (M1)"
    git branch -M main
-
-   # 3. Dorong kode lokal Anda ke repositori GitHub
+   ```
+2. Buat repositori baru di akun GitHub Anda (mis. `idx-stock-analyzer`). Jangan centang
+   inisialisasi README atau `.gitignore` — berkas tersebut sudah ada di lokal.
+3. Daftarkan remote dan dorong kode:
+   ```bash
+   git remote add origin https://github.com/USERNAME/idx-stock-analyzer.git
    git push -u origin main
    ```
-4. Selesai! Seluruh kode aplikasi Anda kini telah terdeploy aman ke GitHub.
+4. Selesai! Seluruh kode aplikasi Anda kini tersimpan di GitHub.
 
 ---
 
