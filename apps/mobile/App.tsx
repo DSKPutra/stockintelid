@@ -17,6 +17,8 @@ import { SectorsScreen } from './src/screens/SectorsScreen';
 import { OwnershipScreen } from './src/screens/OwnershipScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { ChatbotPanel } from './src/components/ChatbotPanel';
+import { MutualFundsScreen } from './src/screens/MutualFundsScreen';
+import { StyleGuideScreen } from './src/screens/StyleGuideScreen';
 import { APP_DISCLAIMER } from '@idx/shared';
 
 const queryClient = new QueryClient();
@@ -45,6 +47,10 @@ export default function App() {
         return <LoginScreen />;
       case 'CHATBOT':
         return <ChatbotPanel />;
+      case 'MUTUAL_FUNDS':
+        return <MutualFundsScreen />;
+      case 'STYLE_GUIDE':
+        return <StyleGuideScreen />;
       default:
         return <DashboardScreen />;
     }
@@ -55,7 +61,9 @@ export default function App() {
     { screen: 'SECTORS', label: 'Sektoral', icon: '📊' },
     { screen: 'OWNERSHIP', label: 'Kepemilikan', icon: '🏢' },
     { screen: 'SCREENER', label: 'Screener', icon: '🔍' },
+    { screen: 'MUTUAL_FUNDS', label: 'Reksa Dana', icon: '📈' },
     { screen: 'CHATBOT', label: 'Asisten AI', icon: '💬' },
+    { screen: 'STYLE_GUIDE', label: 'Style Guide', icon: '🎨' },
   ];
 
   // ---- RENDER LAYOUT SIDEBAR (WEB / TABLET) ----
@@ -65,7 +73,7 @@ export default function App() {
         {/* Sidebar */}
         <View style={[styles.sidebar, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View>
-            <Text style={[styles.logoText, { color: colors.primary }]}>⚡ IDX ANALYZER</Text>
+            <Text style={[styles.logoText, { color: colors.primary }]}>⚡ StockIntelID</Text>
             <Text style={[styles.logoSub, { color: colors.textMuted }]}>Educational Platform</Text>
             
             <View style={styles.menuList}>
@@ -146,7 +154,7 @@ export default function App() {
         {/* Header Mobile */}
         <View style={[styles.mobileHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <Text style={[styles.logoMobileText, { color: colors.primary }]} onPress={() => setScreen('DASHBOARD')}>
-            ⚡ IDX ANALYZER
+            ⚡ StockIntelID
           </Text>
           <View style={styles.headerActions}>
             <Pressable onPress={toggleTheme} style={styles.headerIconBtn}>

@@ -51,10 +51,26 @@ export interface FinancialStatements {
   periods: FinancialPeriod[];
 }
 
+// ---- Klasifikasi Investor ala KSEI / StockMap ----
+export type InvestorType =
+  | 'Corporate'
+  | 'Individual'
+  | 'Investment Bank'
+  | 'Mutual Fund'
+  | 'Insurance'
+  | 'Pension'
+  | 'Broker'
+  | 'Foundation'
+  | 'Government';
+
+export type InvestorLocalForeign = 'L' | 'F';
+
 export interface Shareholder {
   id: string;
   ticker: string;
   holderName: string;
+  holderType: InvestorType;
+  localForeign: InvestorLocalForeign;
   groupId: string | null;
   pct: number;
   shares: number;
@@ -122,4 +138,27 @@ export interface UserProfile {
   email: string;
   role: 'free' | 'premium' | 'admin';
   createdAt: string;
+}
+
+// ---- Model Reksa Dana ----
+export interface MutualFundHolding {
+  ticker: string;
+  stockName: string;
+  pct: number;
+}
+
+export interface MutualFund {
+  id: string;
+  name: string;
+  manager: string; // AUM Manager (mis. Schroders)
+  aum: number; // Asset Under Management (dalam Miliar)
+  holdings: MutualFundHolding[];
+}
+
+// ---- Format Pencarian Universal ----
+export interface UniversalSearchResult {
+  type: 'ticker' | 'investor' | 'group';
+  id: string; // ticker code, investor name, or group id
+  title: string;
+  subtitle: string;
 }

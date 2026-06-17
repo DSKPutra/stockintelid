@@ -56,16 +56,23 @@ export const SectorsScreen: React.FC = () => {
   // Saham yang berada di sektor terpilih
   const selectedSectorStocks = stocks.filter((s) => s.sectorCode === selectedSector);
 
-  // Pewarnaan heatmap dinamis berbasis performa HSL
+  const hexToRgba = (hex: string, alpha: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
+  // Pewarnaan heatmap dinamis berbasis performa HSL/Hex
   const getHeatmapColor = (perf: number) => {
     if (perf > 0) {
       // Hijau: Dari opacity rendah ke penuh berdasarkan performa (max cap di +4%)
       const intensity = Math.min(1, perf / 4);
-      return `rgba(16, 185, 129, ${0.1 + intensity * 0.9})`;
+      return hexToRgba(colors.success, 0.15 + intensity * 0.85);
     } else {
       // Merah: Dari opacity rendah ke penuh berdasarkan performa (min cap di -4%)
       const intensity = Math.min(1, Math.abs(perf) / 4);
-      return `rgba(239, 68, 68, ${0.1 + intensity * 0.9})`;
+      return hexToRgba(colors.danger, 0.15 + intensity * 0.85);
     }
   };
 
@@ -110,7 +117,7 @@ export const SectorsScreen: React.FC = () => {
             const sec = sectors.find((s) => s.code === selectedSector)!;
             return (
               <View style={[styles.detailCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <View style={styles.detailHeader}>
+                <View style={[styles.detailHeader, { borderBottomColor: colors.border }]}>
                   <View>
                     <Text style={[styles.detailTitle, { color: colors.textPrimary }]}>Sektor {sec.nameId} (${sec.nameEn})</Text>
                     <Text style={[styles.detailSub, { color: colors.textMuted }]}>Bobot Kontribusi IHSG: {sec.contributionIHSG}%</Text>
@@ -124,7 +131,7 @@ export const SectorsScreen: React.FC = () => {
                 </View>
 
                 {/* Info Top Stocks */}
-                <View style={styles.bestWorstBox}>
+                <View style={[styles.bestWorstBox, { borderBottomColor: colors.border }]}>
                   <View style={[styles.bwItem, { borderRightColor: colors.border }]}>
                     <Text style={[styles.bwLabel, { color: colors.textMuted }]}>Emiten Terunggul (Best)</Text>
                     <Pressable onPress={() => setScreen('STOCK_DETAIL', { ticker: sec.bestTicker })}>

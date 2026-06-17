@@ -14,6 +14,8 @@ import {
   OHLCV,
   ControllingGroup,
   MockMarketDataProvider,
+  MutualFund,
+  UniversalSearchResult,
 } from '@idx/shared';
 
 @Injectable()
@@ -45,6 +47,10 @@ export class StockService implements OnModuleInit, OnModuleDestroy {
         await this.pgPool.query('SELECT 1');
         this.useDatabase = true;
         console.log('[DATABASE] Koneksi PostgreSQL berhasil!');
+        
+        // Peningkatan skema secara dinamis untuk KSEI classification
+        await this.pgPool.query('ALTER TABLE shareholders ADD COLUMN IF NOT EXISTS holder_type TEXT');
+        await this.pgPool.query('ALTER TABLE shareholders ADD COLUMN IF NOT EXISTS local_foreign TEXT');
         
         // Auto seeding data bursa jika database kosong
         await this.seedDatabaseIfNeeded();
@@ -126,8 +132,8 @@ export class StockService implements OnModuleInit, OnModuleDestroy {
           const holders = await this.mockProvider.getShareholders(s.ticker);
           for (const h of holders) {
             await this.pgPool.query(
-              'INSERT INTO shareholders (ticker, holder_name, group_id, pct, shares, is_controller, as_of, source, verified) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-              [s.ticker, h.holderName, h.groupId, h.pct, h.shares, h.isController, h.asOf, h.source, h.verified]
+              'INSERT INTO shareholders (ticker, holder_name, group_id, pct, shares, is_controller, as_of, source, verified, holder_type, local_foreign) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+              [s.ticker, h.holderName, h.groupId, h.pct, h.shares, h.isController, h.asOf, h.source, h.verified, h.holderType, h.localForeign]
             );
           }
 
@@ -312,7 +318,7 @@ export class StockService implements OnModuleInit, OnModuleDestroy {
 
     if (this.useDatabase && this.pgPool) {
       const { rows } = await this.pgPool.query(
-        `SELECT id, ticker, holder_name as "holderName", group_id as "groupId", pct, shares, is_controller as "isController", as_of as "asOf", source, verified
+        `SELECT id, ticker, holder_name as "holderName", group_id as "groupId", pct, shares, is_controller as "isController", as_of as "asOf", source, verified, holder_type as "holderType", local_foreign as "localForeign"
          FROM shareholders
          WHERE ticker = $1
          ORDER BY pct DESC`,
@@ -325,6 +331,8 @@ export class StockService implements OnModuleInit, OnModuleDestroy {
           pct: parseFloat(r.pct),
           shares: parseInt(r.shares, 10),
           asOf: r.asOf.toISOString().split('T')[0],
+          holderType: r.holderType as any || 'Individual',
+          localForeign: r.localForeign as any || 'L',
         }));
       }
     }
@@ -342,7 +350,6 @@ export class StockService implements OnModuleInit, OnModuleDestroy {
         'SELECT code, name_id as "nameId", name_en as "nameEn" FROM sectors'
       );
       if (rows.length > 0) {
-        // Ambil data statis kontribusi untuk melengkapi data sektor
         const mockSectors = await this.mockProvider.getSectorList();
         return rows.map(r => {
           const mock = mockSectors.find(s => s.code === r.code) || mockSectors[0]!;
@@ -435,5 +442,141 @@ export class StockService implements OnModuleInit, OnModuleDestroy {
     }
     this.watchlistMap.set(email, current);
     return current;
+  }
+
+  // ===========================================================================
+  // ---- PENAMBAHAN UNTUK UX ALA STOCKMAP ----
+  // ===========================================================================
+
+  // 1. Search Universal (Ticker / Investor / Group)
+  async searchUniversal(q: string): Promise<UniversalSearchResult[]> {
+    const query = q.toLowerCase().trim();
+    if (!query) return [];
+
+    const results: UniversalSearchResult[] = [];
+
+    // A. Cari Ticker
+    const stocks = await this.getStocks();
+    const matchedStocks = stocks.filter(
+      s => s.ticker.toLowerCase().includes(query) || s.name.toLowerCase().includes(query)
+    );
+    matchedStocks.slice(0, 5).forEach(s => {
+      results.push({
+        type: 'ticker',
+        id: s.ticker,
+        title: s.ticker,
+        subtitle: s.name,
+      });
+    });
+
+    // B. Cari Grup
+    const groups = await this.getControllingGroups();
+    const matchedGroups = groups.filter(
+      g => g.name.toLowerCase().includes(query) || g.ultimateOwner.toLowerCase().includes(query)
+    );
+    matchedGroups.forEach(g => {
+      results.push({
+        type: 'group',
+        id: g.id,
+        title: g.name,
+        subtitle: `Konglomerasi UBO: ${g.ultimateOwner}`,
+      });
+    });
+
+    // C. Cari Investor (Shareholder)
+    // Ambil list pemegang saham unik dari semua emiten
+    const investorNames = new Set<string>();
+    const investorDetails = new Map<string, { type: string; lf: string }>();
+
+    for (const stock of stocks) {
+      const holders = await this.getShareholders(stock.ticker);
+      for (const h of holders) {
+        if (!h.groupId && h.holderName.toLowerCase().includes(query) && !h.holderName.includes('Masyarakat')) {
+          investorNames.add(h.holderName);
+          investorDetails.set(h.holderName, { type: h.holderType, lf: h.localForeign });
+        }
+      }
+    }
+
+    Array.from(investorNames).slice(0, 5).forEach(name => {
+      const details = investorDetails.get(name)!;
+      results.push({
+        type: 'investor',
+        id: name,
+        title: name,
+        subtitle: `${details.lf === 'L' ? 'Lokal' : 'Asing'} - ${details.type}`,
+      });
+    });
+
+    return results;
+  }
+
+  // 2. Portofolio Investor
+  async getInvestorProfile(name: string): Promise<{ name: string; holdings: any[] }> {
+    const stocks = await this.getStocks();
+    const holdings: any[] = [];
+
+    for (const stock of stocks) {
+      const holders = await this.getShareholders(stock.ticker);
+      const matched = holders.find(h => h.holderName.toLowerCase() === name.toLowerCase());
+      if (matched) {
+        const quote = await this.getQuote(stock.ticker);
+        holdings.push({
+          ticker: stock.ticker,
+          stockName: stock.name,
+          pct: matched.pct,
+          shares: matched.shares,
+          holderType: matched.holderType,
+          localForeign: matched.localForeign,
+          marketVal: matched.shares * quote.price,
+          asOf: matched.asOf,
+        });
+      }
+    }
+
+    return { name, holdings };
+  }
+
+  // 3. Reksa Dana
+  async getMutualFunds(): Promise<MutualFund[]> {
+    return this.mockProvider.getMutualFunds();
+  }
+
+  // 4. Float Screener
+  async getFloatScreener(): Promise<any[]> {
+    const stocks = await this.getStocks();
+    const screenerResults: any[] = [];
+
+    for (const s of stocks) {
+      const holders = await this.getShareholders(s.ticker);
+      
+      // Hitung kepemilikan strategis (non-free float)
+      // strategic holders = Corporate, Individual, Government, Foundation, atau isController = true (Kecuali ritel/masyarakat)
+      const strategicHolders = holders.filter(
+        h => (h.isController || ['Corporate', 'Individual', 'Government', 'Foundation'].includes(h.holderType)) && 
+             !h.holderName.includes('Masyarakat')
+      );
+
+      const strategicPct = strategicHolders.reduce((sum, h) => sum + h.pct, 0);
+      const freeFloatPct = parseFloat((100 - strategicPct).toFixed(2));
+      const topHolder = holders[0]?.holderName || 'Masyarakat';
+      
+      let riskLevel = 'Low';
+      if (freeFloatPct < 20) riskLevel = 'High';
+      else if (freeFloatPct < 40) riskLevel = 'Medium';
+
+      screenerResults.push({
+        ticker: s.ticker,
+        name: s.name,
+        sectorCode: s.sectorCode,
+        marketCap: s.marketCap,
+        strategicPct,
+        freeFloatPct,
+        topHolder,
+        riskLevel,
+      });
+    }
+
+    return screenerResults;
   }
 }

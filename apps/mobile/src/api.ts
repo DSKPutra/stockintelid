@@ -52,6 +52,12 @@ export const stockApi = {
   getGroups: () => apiRequest<any[]>('/stocks/groups'),
   getGroup: (id: string) => apiRequest<any>(`/stocks/groups/${id}`),
   
+  // Baru
+  searchUniversal: (q: string) => apiRequest<any[]>(`/stocks/search-universal?q=${encodeURIComponent(q)}`),
+  getInvestorProfile: (name: string) => apiRequest<any>(`/stocks/investors/${encodeURIComponent(name)}`),
+  getMutualFunds: () => apiRequest<any[]>('/stocks/mutual-funds'),
+  getFloatScreener: () => apiRequest<any[]>('/stocks/screener/float'),
+  
   // Watchlist
   getWatchlist: () => apiRequest<string[]>('/stocks/watchlist/list'),
   toggleWatchlist: (ticker: string) => apiRequest<string[]>('/stocks/watchlist/toggle', {

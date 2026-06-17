@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "IDX Stock Analyzer",
-    "slug": "idx-stock-analyzer",
+    "name": "StockIntelID",
+    "slug": "stockintelid",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

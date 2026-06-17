@@ -8,6 +8,7 @@ import {
   Sector,
   Disclosure,
   OHLCV,
+  MutualFund,
 } from './types';
 
 export interface MarketDataProvider {
@@ -21,4 +22,5 @@ export interface MarketDataProvider {
   getCorporateActions(ticker: string): Promise<CorporateAction[]>;
   getSectorList(): Promise<Sector[]>;
   getDisclosures(ticker: string): Promise<Disclosure[]>;
+  getMutualFunds(): Promise<MutualFund[]>;
 }

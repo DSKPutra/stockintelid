@@ -10,6 +10,9 @@ import {
   Disclosure,
   OHLCV,
   ControllingGroup,
+  MutualFund,
+  InvestorType,
+  InvestorLocalForeign,
 } from './types';
 
 // Data statis untuk Sektor
@@ -24,7 +27,7 @@ export const MOCK_SECTORS: Sector[] = [
   { code: 'properties', nameId: 'Properti & Real Estate', nameEn: 'Properties & Real Estate', performance: -0.5, avgPe: 11.2, avgPbv: 0.9, contributionIHSG: 5.2, bestTicker: 'BSDE', worstTicker: 'PWON' },
   { code: 'technology', nameId: 'Teknologi', nameEn: 'Technology', performance: -3.5, avgPe: -45.0, avgPbv: 1.2, contributionIHSG: 7.8, bestTicker: 'GOTO', worstTicker: 'BUKA' },
   { code: 'infrastructure', nameId: 'Infrastruktur', nameEn: 'Infrastructure', performance: 3.2, avgPe: 20.8, avgPbv: 4.5, contributionIHSG: 6.8, bestTicker: 'BREN', worstTicker: 'TLKM' },
-  { code: 'transportation', nameId: 'Transportasi & Logistik', nameEn: 'Transportation & Logistics', performance: 0.9, avgPe: 13.7, avgPbv: 1.4, contributionIHSG: 1.7, bestTicker: 'RMKE', worstTicker: 'ASSAs' },
+  { code: 'transportation', nameId: 'Transportasi & Logistik', nameEn: 'Transportation & Logistics', performance: 0.9, avgPe: 13.7, avgPbv: 1.4, contributionIHSG: 1.7, bestTicker: 'RMKE', worstTicker: 'ASSA' },
 ];
 
 // Data statis untuk Grup Pengendali
@@ -33,42 +36,49 @@ export const MOCK_GROUPS: ControllingGroup[] = [
     id: 'barito',
     name: 'Prajogo Pangestu / Barito Grup',
     ultimateOwner: 'Prajogo Pangestu',
-    description: 'Konglomerasi energi terbarukan, petrokimia, dan infrastruktur yang dipimpin oleh Prajogo Pangestu. Mengalami ekspansi luar biasa melalui IPO entitas energi hijau.',
+    description: 'Konglomerasi energi terbarukan, petrokimia, dan infrastruktur yang dipimpin oleh Prajogo Pangestu. Mengalami ekspansi luar biasa melalui IPO entitas energi hijau BREN.',
     tickers: ['BREN', 'BRPT', 'TPIA', 'CUAN', 'PTRO'],
   },
   {
     id: 'bakrie',
     name: 'Bakrie Group',
     ultimateOwner: 'Keluarga Bakrie',
-    description: 'Salah satu konglomerasi tertua di Indonesia, bergerak di bidang pertambangan batu bara, minyak & gas, perkebunan, infrastruktur, media, dan kendaraan listrik.',
+    description: 'Konglomerasi tertua di Indonesia, bergerak di bidang pertambangan batu bara, minyak & gas, perkebunan, infrastruktur, media, dan kendaraan listrik.',
     tickers: ['BUMI', 'BNBR', 'DEWA', 'ENRG', 'VKTR'],
   },
   {
     id: 'happy',
     name: 'Happy Hapsoro Group',
     ultimateOwner: 'Hapsoro Sukmonohadi (Happy Hapsoro)',
-    description: 'Grup bisnis yang berafiliasi dengan suami Puan Maharani, berfokus pada logistik batubara, energi minyak bumi, jasa keuangan, dan infrastruktur mineral.',
+    description: 'Grup bisnis yang berfokus pada logistik batubara, energi minyak bumi, jasa keuangan, dan infrastruktur mineral.',
     tickers: ['RMKE', 'RAJA', 'SDRA'],
   },
   {
     id: 'djarum',
     name: 'Djarum Group',
     ultimateOwner: 'Budi & Michael Hartono',
-    description: 'Grup terbesar di Indonesia dari sisi kapitalisasi pasar, ditopang terutama oleh kepemilikan mayoritas di Bank Central Asia (BBCA) dan menara TOWR.',
+    description: 'Grup terbesar di Indonesia dari sisi kapitalisasi pasar, ditopang oleh kepemilikan di Bank Central Asia (BBCA) dan infrastruktur menara TOWR.',
     tickers: ['BBCA', 'TOWR'],
   },
   {
     id: 'salim',
     name: 'Salim Group',
     ultimateOwner: 'Anthoni Salim',
-    description: 'Raksasa industri makanan (Indofood), perkebunan kelapa sawit, infrastruktur, ritel modern (Indomaret), dan teknologi digital.',
+    description: 'Raksasa industri makanan (Indofood), perkebunan kelapa sawit, ritel modern (Indomaret), dan infrastruktur.',
     tickers: ['INDF', 'ICBP', 'LSIP'],
+  },
+  {
+    id: 'sinarmas',
+    name: 'Sinar Mas Group',
+    ultimateOwner: 'Keluarga Widjaja',
+    description: 'Grup raksasa pulp & paper, agribisnis, properti (Bumi Serpong Damai BSDE), layanan keuangan, dan telekomunikasi.',
+    tickers: ['BSIM', 'BSDE'],
   },
   {
     id: 'astra',
     name: 'Astra / Jardine Group',
     ultimateOwner: 'Jardine Matheson Holdings',
-    description: 'Pilar otomotif Indonesia dengan ekspansi masif ke alat berat, tambang (United Tractors), agribisnis, infrastruktur, dan jasa keuangan.',
+    description: 'Pilar otomotif Indonesia dengan ekspansi masif ke alat berat, pertambangan, agribisnis, infrastruktur, dan jasa keuangan.',
     tickers: ['ASII', 'UNTR'],
   },
 ];
@@ -177,7 +187,7 @@ export class MockMarketDataProvider implements MarketDataProvider {
 
     for (let i = days; i >= 0; i--) {
       const ts = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-      // Lewati akhir pekan (Sabtu & Minggu)
+      // Lewati akhir pekan
       if (ts.getDay() === 0 || ts.getDay() === 6) continue;
 
       const change = (Math.random() - 0.48) * (currentPrice * 0.03);
@@ -215,7 +225,6 @@ export class MockMarketDataProvider implements MarketDataProvider {
     let dividendYield = 2.5;
     let netMargin = 15;
 
-    // Spesifikasikan beberapa emiten utama
     if (ticker === 'BBCA') {
       per = 24.5; pbv = 4.8; roe = 21.2; der = 0.15; eps = 390; dividendYield = 1.8; netMargin = 45.2;
     } else if (ticker === 'BBRI') {
@@ -245,14 +254,14 @@ export class MockMarketDataProvider implements MarketDataProvider {
       dividendYield,
       netMargin,
       marketCap: stock.marketCap,
-      source: 'Keterbukaan Informasi IDX (Laporan Keuangan Q1 2026)',
+      source: 'Laporan Keuangan Q1 2026',
     };
   }
 
   async getFinancials(ticker: string): Promise<FinancialStatements> {
     const periods = ['2023', '2024', '2025'];
     const dataMap: Record<string, number[]> = {
-      BBCA: [99000, 112000, 128000], // revenue
+      BBCA: [99000, 112000, 128000],
       BBRI: [180000, 195000, 215000],
       BREN: [8000, 9200, 10500],
       GOTO: [14000, 12000, 15500],
@@ -299,24 +308,28 @@ export class MockMarketDataProvider implements MarketDataProvider {
           id: `sh_${ticker}_1`,
           ticker,
           holderName: 'PT Barito Pacific Tbk',
+          holderType: 'Corporate',
+          localForeign: 'L',
           groupId: 'barito',
           pct: 64.5,
           shares: Math.floor(MOCK_STOCKS.find(s => s.ticker === ticker)!.listedShares * 0.645),
           isController: true,
           asOf: '2026-05-31',
-          source: 'Laporan Kepemilikan Bulanan KSEI',
+          source: 'Laporan Kepemilikan KSEI',
           verified: true,
         });
         list.push({
           id: `sh_${ticker}_2`,
           ticker,
           holderName: 'Prajogo Pangestu',
+          holderType: 'Individual',
+          localForeign: 'L',
           groupId: 'barito',
           pct: 12.3,
           shares: Math.floor(MOCK_STOCKS.find(s => s.ticker === ticker)!.listedShares * 0.123),
           isController: true,
           asOf: '2026-05-31',
-          source: 'Laporan Keterbukaan Informasi Emiten',
+          source: 'Keterbukaan Informasi IDX',
           verified: true,
         });
       } else if (group.id === 'bakrie') {
@@ -324,18 +337,22 @@ export class MockMarketDataProvider implements MarketDataProvider {
           id: `sh_${ticker}_1`,
           ticker,
           holderName: 'PT Bakrie Global Ventura',
+          holderType: 'Corporate',
+          localForeign: 'L',
           groupId: 'bakrie',
           pct: 35.8,
           shares: Math.floor(MOCK_STOCKS.find(s => s.ticker === ticker)!.listedShares * 0.358),
           isController: true,
           asOf: '2026-05-31',
-          source: 'Keterbukaan Efek Emiten',
+          source: 'Keterbukaan KSEI',
           verified: true,
         });
         list.push({
           id: `sh_${ticker}_2`,
           ticker,
           holderName: 'NTP Asia Distribution',
+          holderType: 'Corporate',
+          localForeign: 'F',
           groupId: 'bakrie',
           pct: 9.5,
           shares: Math.floor(MOCK_STOCKS.find(s => s.ticker === ticker)!.listedShares * 0.095),
@@ -349,40 +366,108 @@ export class MockMarketDataProvider implements MarketDataProvider {
           id: `sh_${ticker}_1`,
           ticker,
           holderName: 'PT Sentraranusa Prima',
+          holderType: 'Corporate',
+          localForeign: 'L',
           groupId: 'happy',
           pct: 42.1,
           shares: Math.floor(MOCK_STOCKS.find(s => s.ticker === ticker)!.listedShares * 0.421),
           isController: true,
           asOf: '2026-04-30',
-          source: 'Laporan Kepemilikan Emiten Q1 2026',
-          verified: true,
-        });
-        list.push({
-          id: `sh_${ticker}_2`,
-          ticker,
-          holderName: 'Hapsoro Sukmonohadi',
-          groupId: 'happy',
-          pct: 8.4,
-          shares: Math.floor(MOCK_STOCKS.find(s => s.ticker === ticker)!.listedShares * 0.084),
-          isController: true,
-          asOf: '2026-04-30',
-          source: 'Form Keterbukaan Pemilik Manfaat Akhir',
-          verified: true,
-        });
-      } else if (group.id === 'djarum') {
-        list.push({
-          id: `sh_${ticker}_1`,
-          ticker,
-          holderName: 'PT Dwimuria Investama Andalan',
-          groupId: 'djarum',
-          pct: 54.94,
-          shares: Math.floor(MOCK_STOCKS.find(s => s.ticker === ticker)!.listedShares * 0.5494),
-          isController: true,
-          asOf: '2026-05-31',
-          source: 'Laporan Bulanan Registrasi Pemegang Efek',
+          source: 'KSEI Bulanan',
           verified: true,
         });
       }
+    }
+
+    // Pemegang saham institusi eksternal untuk melengkapi data
+    if (ticker === 'BBCA') {
+      list.push({
+        id: `sh_${ticker}_ext1`,
+        ticker,
+        holderName: 'PT Dwimuria Investama Andalan',
+        holderType: 'Corporate',
+        localForeign: 'L',
+        groupId: 'djarum',
+        pct: 54.94,
+        shares: Math.floor(MOCK_STOCKS.find(s => s.ticker === ticker)!.listedShares * 0.5494),
+        isController: true,
+        asOf: '2026-05-31',
+        source: 'Laporan Registrasi KSEI',
+        verified: true,
+      });
+      list.push({
+        id: `sh_${ticker}_ext2`,
+        ticker,
+        holderName: 'Government of Norway',
+        holderType: 'Government',
+        localForeign: 'F',
+        groupId: null,
+        pct: 2.1,
+        shares: Math.floor(MOCK_STOCKS.find(s => s.ticker === ticker)!.listedShares * 0.021),
+        isController: false,
+        asOf: '2026-05-31',
+        source: 'KSEI Foreign Registry',
+        verified: true,
+      });
+      list.push({
+        id: `sh_${ticker}_ext3`,
+        ticker,
+        holderName: 'Vanguard Emerging Markets Index Fund',
+        holderType: 'Mutual Fund',
+        localForeign: 'F',
+        groupId: null,
+        pct: 1.8,
+        shares: Math.floor(MOCK_STOCKS.find(s => s.ticker === ticker)!.listedShares * 0.018),
+        isController: false,
+        asOf: '2026-05-31',
+        source: 'KSEI Foreign Registry',
+        verified: true,
+      });
+    }
+
+    if (ticker === 'BBRI') {
+      list.push({
+        id: `sh_${ticker}_ext1`,
+        ticker,
+        holderName: 'Negara Republik Indonesia',
+        holderType: 'Government',
+        localForeign: 'L',
+        groupId: null,
+        pct: 53.19,
+        shares: Math.floor(MOCK_STOCKS.find(s => s.ticker === ticker)!.listedShares * 0.5319),
+        isController: true,
+        asOf: '2026-05-31',
+        source: 'Laporan Kepemilikan Negara',
+        verified: true,
+      });
+      list.push({
+        id: `sh_${ticker}_ext2`,
+        ticker,
+        holderName: 'BPJS Ketenagakerjaan',
+        holderType: 'Pension',
+        localForeign: 'L',
+        groupId: null,
+        pct: 4.2,
+        shares: Math.floor(MOCK_STOCKS.find(s => s.ticker === ticker)!.listedShares * 0.042),
+        isController: false,
+        asOf: '2026-05-31',
+        source: 'KSEI Local Institution',
+        verified: true,
+      });
+      list.push({
+        id: `sh_${ticker}_ext3`,
+        ticker,
+        holderName: 'Lo Kheng Hong',
+        holderType: 'Individual',
+        localForeign: 'L',
+        groupId: null,
+        pct: 0.8, // Portofolio Lo Kheng Hong
+        shares: Math.floor(MOCK_STOCKS.find(s => s.ticker === ticker)!.listedShares * 0.008),
+        isController: false,
+        asOf: '2026-05-31',
+        source: 'Keterbukaan Publik',
+        verified: true,
+      });
     }
 
     // Default masyarakat untuk publik sisa
@@ -390,13 +475,15 @@ export class MockMarketDataProvider implements MarketDataProvider {
     list.push({
       id: `sh_${ticker}_pub`,
       ticker,
-      holderName: 'Masyarakat (Kepemilikan < 5%)',
+      holderName: 'Masyarakat / Ritel (<5%)',
+      holderType: 'Individual',
+      localForeign: 'L',
       groupId: null,
       pct: parseFloat((100 - totalAffiliated).toFixed(2)),
       shares: Math.floor(MOCK_STOCKS.find(s => s.ticker === ticker)!.listedShares * ((100 - totalAffiliated) / 100)),
       isController: false,
       asOf: '2026-05-31',
-      source: 'Registrasi Efek KSEI',
+      source: 'KSEI Registry',
       verified: true,
     });
 
@@ -410,14 +497,7 @@ export class MockMarketDataProvider implements MarketDataProvider {
         ticker,
         type: 'DIVIDEND',
         date: '2026-05-15',
-        description: `Pembagian Dividen Tunai Tahun Buku 2025 Sebesar Rp ${ticker === 'BBCA' ? '270' : ticker === 'BBRI' ? '310' : '25'} per lembar saham.`,
-      },
-      {
-        id: `ca_${ticker}_2`,
-        ticker,
-        type: 'RUPS',
-        date: '2026-04-10',
-        description: 'Rapat Umum Pemegang Saham Tahunan (RUPST) Pengesahan Laporan Keuangan 2025.',
+        description: `Pembagian Dividen Tunai Sebesar Rp ${ticker === 'BBCA' ? '270' : ticker === 'BBRI' ? '310' : '25'} per lembar saham.`,
       },
     ];
   }
@@ -431,17 +511,52 @@ export class MockMarketDataProvider implements MarketDataProvider {
       {
         id: `disc_${ticker}_1`,
         ticker,
-        title: 'Keterbukaan Informasi Laporan Informasi atau Fakta Material Perubahan Pengendali / Transaksi Afiliasi',
+        title: 'Laporan Perubahan Kepemilikan Saham Pengendali KSEI',
         date: '2026-06-10',
         url: 'https://www.idx.co.id/id/berita/keterbukaan-informasi/',
       },
+    ];
+  }
+
+  // ---- Get Mutual Funds ----
+  async getMutualFunds(): Promise<MutualFund[]> {
+    return [
       {
-        id: `disc_${ticker}_2`,
-        ticker,
-        title: 'Laporan Bulanan Registrasi Pemegang Efek atau Laporan Perubahan Kepemilikan Saham',
-        date: '2026-06-05',
-        url: 'https://www.idx.co.id/id/berita/keterbukaan-informasi/',
+        id: 'mf_schroders',
+        name: 'Schroders Dana Prestasi Plus',
+        manager: 'PT Schroder Investment Management Indonesia',
+        aum: 14500, // Rp 14.5 T
+        holdings: [
+          { ticker: 'BBCA', stockName: 'PT Bank Central Asia Tbk', pct: 9.5 },
+          { ticker: 'BBRI', stockName: 'PT Bank Rakyat Indonesia Tbk', pct: 8.8 },
+          { ticker: 'ASII', stockName: 'PT Astra International Tbk', pct: 6.2 },
+          { ticker: 'TLKM', stockName: 'PT Telkom Indonesia Tbk', pct: 5.4 },
+        ]
       },
+      {
+        id: 'mf_mandiri',
+        name: 'Mandiri Saham Atraktif',
+        manager: 'PT Mandiri Manajemen Investasi',
+        aum: 8200, // Rp 8.2 T
+        holdings: [
+          { ticker: 'BBRI', stockName: 'PT Bank Rakyat Indonesia Tbk', pct: 9.8 },
+          { ticker: 'BBCA', stockName: 'PT Bank Central Asia Tbk', pct: 9.2 },
+          { ticker: 'ADRO', stockName: 'PT Adaro Energy Indonesia Tbk', pct: 7.1 },
+          { ticker: 'BREN', stockName: 'PT Barito Renewables Energy Tbk', pct: 4.8 },
+        ]
+      },
+      {
+        id: 'mf_sucor',
+        name: 'Sucorinvest Equity Fund',
+        manager: 'PT Sucorinvest Asset Management',
+        aum: 6100, // Rp 6.1 T
+        holdings: [
+          { ticker: 'RMKE', stockName: 'PT RMK Energy Tbk', pct: 8.5 },
+          { ticker: 'RAJA', stockName: 'PT Rukun Raharja Tbk', pct: 7.9 },
+          { ticker: 'BRPT', stockName: 'PT Barito Pacific Tbk', pct: 6.4 },
+          { ticker: 'CUAN', stockName: 'PT Petrindo Jaya Kreasi Tbk', pct: 5.2 },
+        ]
+      }
     ];
   }
 }

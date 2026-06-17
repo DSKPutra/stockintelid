@@ -11,6 +11,8 @@ import {
 import { getThemeColors, useAppStore } from '../store';
 import { stockApi } from '../api';
 import { Chart } from '../components/Chart';
+import { TVChart } from '../components/TradingViewWidget';
+import { NetworkGraph } from '../components/NetworkGraph';
 
 type TabType = 'CHART' | 'FUNDAMENTAL' | 'FINANCIALS' | 'OWNERSHIP' | 'ACTIONS';
 
@@ -76,9 +78,28 @@ export const StockDetailScreen: React.FC = () => {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ color: colors.textSecondary, marginTop: 12 }}>Memuat data emiten {selectedTicker}...</Text>
+        <Text style={{ color: colors.textSecondary, marginTop: 12 }}>Mengakses data KSEI {selectedTicker}...</Text>
       </View>
     );
+  }
+
+  // Hitung free float menggunakan metode MSCI
+  // strategic = Corporate, Individual, Government, Foundation, atau isController = true (Kecuali ritel/masyarakat)
+  const strategicHolders = shareholders.filter(
+    h => (h.isController || ['Corporate', 'Individual', 'Government', 'Foundation'].includes(h.holderType)) && 
+         !h.holderName.includes('Masyarakat')
+  );
+  const strategicPct = parseFloat(strategicHolders.reduce((sum, h) => sum + h.pct, 0).toFixed(2));
+  const freeFloatPct = parseFloat((100 - strategicPct).toFixed(2));
+
+  let floatRiskLevel = 'Low Risk';
+  let floatRiskColor = colors.success;
+  if (freeFloatPct < 20) {
+    floatRiskLevel = 'High Risk (Low Float)';
+    floatRiskColor = colors.danger;
+  } else if (freeFloatPct < 40) {
+    floatRiskLevel = 'Medium Risk';
+    floatRiskColor = colors.warning;
   }
 
   const renderTabContent = () => {
@@ -86,26 +107,30 @@ export const StockDetailScreen: React.FC = () => {
       case 'CHART':
         return (
           <View>
-            <View style={styles.timeframeRow}>
-              {['30d', '90d', '1y'].map((tf) => (
-                <Pressable
-                  key={tf}
-                  style={[
-                    styles.tfButton,
-                    { backgroundColor: timeframe === tf ? colors.primary : colors.card },
-                  ]}
-                  onPress={() => setTimeframe(tf)}
-                >
-                  <Text style={[styles.tfText, { color: timeframe === tf ? '#ffffff' : colors.textSecondary }]}>
-                    {tf.toUpperCase()}
-                  </Text>
-                </Pressable>
-              ))}
+            {/* Advanced TradingView Embed Widget */}
+            <TVChart symbol={selectedTicker} />
+            
+            {/* Fallback kustom SVG Chart (Candlestick lokal) */}
+            <View style={{ marginTop: 16 }}>
+              <Text style={[styles.subtitleLabel, { color: colors.textSecondary }]}>📊 Alternatif Grafik Kustom SVG Lokal (Hemat Kuota)</Text>
+              <View style={styles.timeframeRow}>
+                {['30d', '90d', '1y'].map((tf) => (
+                  <Pressable
+                    key={tf}
+                    style={[
+                      styles.tfButton,
+                      { backgroundColor: timeframe === tf ? colors.primary : colors.card },
+                    ]}
+                    onPress={() => setTimeframe(tf)}
+                  >
+                    <Text style={[styles.tfText, { color: timeframe === tf ? '#ffffff' : colors.textSecondary }]}>
+                      {tf.toUpperCase()}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Chart data={ohlcv} />
             </View>
-            <Chart data={ohlcv} />
-            <Text style={[styles.chartNotice, { color: colors.textMuted }]}>
-              💡 Geser kursor di atas grafik untuk melihat data harga pembukaan (O), tertinggi (H), terendah (L), penutupan (C), dan volume.
-            </Text>
           </View>
         );
 
@@ -170,27 +195,72 @@ export const StockDetailScreen: React.FC = () => {
 
       case 'OWNERSHIP':
         return (
-          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Pemegang Saham Pengendali & Publik</Text>
-            {shareholders.map((sh, idx) => (
-              <View key={idx} style={[styles.holderRow, { borderBottomColor: colors.border }]}>
-                <View style={{ flex: 1.5 }}>
-                  <Text style={[styles.holderName, { color: colors.textPrimary }]}>{sh.holderName}</Text>
-                  {sh.groupId && (
-                    <Pressable
-                      style={[styles.groupBadge, { backgroundColor: colors.cardLight }]}
-                      onPress={() => setScreen('OWNERSHIP', { groupId: sh.groupId })}
-                    >
-                      <Text style={[styles.groupBadgeText, { color: colors.primary }]}>🔗 Grup {sh.groupId.toUpperCase()}</Text>
-                    </Pressable>
-                  )}
+          <View>
+            {/* Radial/Bar Visualisasi Free Float */}
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: 16 }]}>
+              <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>📊 Estimasi Free-Float (Metode MSCI)</Text>
+              
+              <View style={styles.floatBarRow}>
+                <View style={[styles.floatBarContainer, { backgroundColor: colors.cardLight }]}>
+                  <View style={[styles.floatBarFill, { width: `${freeFloatPct}%`, backgroundColor: colors.secondary }]} />
                 </View>
-                <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                  <Text style={[styles.holderPct, { color: colors.textPrimary }]}>{sh.pct}%</Text>
-                  <Text style={[styles.holderShares, { color: colors.textMuted }]}>{(sh.shares / 1e6).toFixed(1)}M lembar</Text>
-                </View>
+                <Text style={[styles.floatValueText, { color: colors.textPrimary }]}>{freeFloatPct}%</Text>
               </View>
-            ))}
+
+              <View style={styles.floatDetailsRow}>
+                <Text style={[styles.floatLabel, { color: colors.textSecondary }]}>Strategic (Non-Float): {strategicPct}%</Text>
+                <Text style={[styles.floatRiskLabel, { color: floatRiskColor }]}>Risiko Likuiditas: {floatRiskLevel}</Text>
+              </View>
+            </View>
+
+            {/* Network Graph Visualisasi */}
+            <NetworkGraph
+              ticker={selectedTicker}
+              stockName={stock.name}
+              groupName={stock.sectorCode} // atau controlling group
+              shareholders={shareholders}
+            />
+
+            {/* Tabel Pemegang Saham Lengkap ala KSEI */}
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 16 }]}>
+              <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>📋 Struktur Kepemilikan KSEI</Text>
+              
+              <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+                <View style={{ minWidth: 500 }}>
+                  <View style={[styles.tableRow, styles.tableHeader, { borderBottomColor: colors.border }]}>
+                    <Text style={[styles.colHeader, { color: colors.textPrimary, width: 150 }]}>Pemegang Saham</Text>
+                    <Text style={[styles.colHeader, { color: colors.textPrimary, width: 90, textAlign: 'center' }]}>Tipe</Text>
+                    <Text style={[styles.colHeader, { color: colors.textPrimary, width: 40, textAlign: 'center' }]}>L/F</Text>
+                    <Text style={[styles.colHeader, { color: colors.textPrimary, width: 70, textAlign: 'right' }]}>Porsi (%)</Text>
+                    <Text style={[styles.colHeader, { color: colors.textPrimary, width: 100, textAlign: 'right' }]}>Jumlah Lembar</Text>
+                  </View>
+
+                  {shareholders.map((sh, idx) => (
+                    <View key={idx} style={[styles.tableRow, { borderBottomColor: colors.border }]}>
+                      <Text style={[styles.colLabel, { color: colors.textPrimary, width: 150 }]} numberOfLines={1}>
+                        {sh.holderName}
+                      </Text>
+                      <Text style={[styles.colLabel, { color: colors.textSecondary, width: 90, textAlign: 'center' }]}>
+                        {sh.holderType}
+                      </Text>
+                      <Text style={[styles.colLabel, { color: colors.textSecondary, width: 40, textAlign: 'center', fontWeight: 'bold' }]}>
+                        {sh.localForeign}
+                      </Text>
+                      <Text style={[styles.colLabel, { color: colors.textPrimary, width: 70, textAlign: 'right', fontWeight: 'bold' }]}>
+                        {sh.pct}%
+                      </Text>
+                      <Text style={[styles.colLabel, { color: colors.textMuted, width: 100, textAlign: 'right' }]}>
+                        {(sh.shares / 1e6).toFixed(1)}M
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
+              
+              <Text style={[styles.sourceText, { color: colors.textMuted, marginTop: 12 }]}>
+                Data KSEI periodik per: 31 Mei 2026. Bukan realtime.
+              </Text>
+            </View>
           </View>
         );
 
@@ -270,10 +340,10 @@ export const StockDetailScreen: React.FC = () => {
       {/* Tabs */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.tabsScroll, { borderBottomColor: colors.border }]}>
         {[
-          { id: 'CHART', label: 'Chart' },
+          { id: 'CHART', label: 'Chart Live' },
           { id: 'FUNDAMENTAL', label: 'Fundamental' },
           { id: 'FINANCIALS', label: 'Laporan Keuangan' },
-          { id: 'OWNERSHIP', label: 'Kepemilikan' },
+          { id: 'OWNERSHIP', label: 'Kepemilikan & Relasi' },
           { id: 'ACTIONS', label: 'Aksi & Berita' },
         ].map((tab) => (
           <Pressable
@@ -371,10 +441,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
   },
-  chartNotice: {
-    fontSize: 10,
-    marginTop: 8,
-    textAlign: 'center',
+  subtitleLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginVertical: 10,
   },
   card: {
     borderWidth: 1,
@@ -382,7 +452,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   cardTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 12,
   },
@@ -440,35 +510,6 @@ const styles = StyleSheet.create({
     width: 80,
     textAlign: 'right',
   },
-  holderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  holderName: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  groupBadge: {
-    alignSelf: 'flex-start',
-    marginTop: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  groupBadgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  holderPct: {
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
-  holderShares: {
-    fontSize: 10,
-    marginTop: 2,
-  },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -509,5 +550,39 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 40,
+  },
+  // Free Float Styles
+  floatBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  floatBarContainer: {
+    flex: 1,
+    height: 12,
+    borderRadius: 6,
+    overflow: 'hidden',
+    marginRight: 12,
+  },
+  floatBarFill: {
+    height: '100%',
+    borderRadius: 6,
+  },
+  floatValueText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  floatDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  floatLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  floatRiskLabel: {
+    fontSize: 11,
+    fontWeight: '800',
   },
 });

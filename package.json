@@ -1,5 +1,5 @@
 {
-  "name": "idx-app",
+  "name": "stockintelid",
   "version": "0.1.0",
   "private": true,
   "description": "Aplikasi analisa saham IDX (web + mobile + backend) dari satu codebase. Alat informasi/edukasi, bukan rekomendasi investasi.",

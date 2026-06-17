@@ -19,6 +19,30 @@ export class StockController {
     return this.stockService.searchStocks(q);
   }
 
+  // ---- Baru: Search Universal (Ticker / Investor / Group) ----
+  @Get('search-universal')
+  async searchUniversal(@Query('q') q: string = '') {
+    return this.stockService.searchUniversal(q);
+  }
+
+  // ---- Baru: Portofolio Holding Investor ----
+  @Get('investors/:name')
+  async getInvestorProfile(@Param('name') name: string) {
+    return this.stockService.getInvestorProfile(name);
+  }
+
+  // ---- Baru: Daftar Reksa Dana ----
+  @Get('mutual-funds')
+  async getMutualFunds() {
+    return this.stockService.getMutualFunds();
+  }
+
+  // ---- Baru: Float Screener ----
+  @Get('screener/float')
+  async getFloatScreener() {
+    return this.stockService.getFloatScreener();
+  }
+
   @Get('sectors')
   async getSectors() {
     return this.stockService.getSectorList();
@@ -36,10 +60,7 @@ export class StockController {
 
   @Get(':ticker')
   async getStock(@Param('ticker') ticker: string) {
-    const stocks = await this.stockService.getStocks();
-    const stock = stocks.find(s => s.ticker === ticker.toUpperCase());
-    if (!stock) throw new Error(`Stock ${ticker} tidak ditemukan`);
-    return stock;
+    return this.stockService.getStock(ticker);
   }
 
   @Get(':ticker/quote')

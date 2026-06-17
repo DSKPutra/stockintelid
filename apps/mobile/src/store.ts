@@ -9,7 +9,9 @@ export type ScreenType =
   | 'SCREENER'
   | 'SECTORS'
   | 'OWNERSHIP'
-  | 'CHATBOT';
+  | 'CHATBOT'
+  | 'MUTUAL_FUNDS'
+  | 'STYLE_GUIDE';
 
 interface AppState {
   theme: 'dark' | 'light';
