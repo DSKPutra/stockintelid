@@ -1,12 +1,55 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { getThemeColors, useAppStore } from '../store';
 
+type ThemeMode = 'dark' | 'light';
+
 declare const document: any;
+
+// WebView hanya ada di native; require lazy agar bundle web tidak terganggu.
+let WebViewComp: any = null;
+if (Platform.OS !== 'web') {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  WebViewComp = require('react-native-webview').WebView;
+}
 
 interface TVWidgetProps {
   symbol: string;
   height?: number;
+}
+
+// LEGAL: Widget TradingView wajib disertai atribusi sesuai Terms of Use TradingView.
+// Embed di bawah memuat atribusi bawaan widget; jangan dihapus.
+
+function chartHtml(symbol: string, theme: ThemeMode, bg: string): string {
+  return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"><style>html,body{margin:0;padding:0;height:100%;background:${bg}}</style></head>
+<body><div class="tradingview-widget-container" style="height:100%;width:100%">
+<div id="tv"></div>
+<script src="https://s3.tradingview.com/tv.js"></script>
+<script>new TradingView.widget({width:'100%',height:'100%',symbol:'IDX:${symbol.toUpperCase()}',interval:'D',timezone:'Asia/Jakarta',theme:'${theme}',style:'1',locale:'id',allow_symbol_change:true,hide_side_toolbar:true,container_id:'tv'});</script>
+</div></body></html>`;
+}
+
+function heatmapHtml(theme: ThemeMode, bg: string): string {
+  const config = {
+    dataSource: 'AllIDX',
+    blockSize: 'market_cap_basic',
+    blockColor: 'change',
+    grouping: 'sector',
+    locale: 'id',
+    symbolUrl: '',
+    colorTheme: theme,
+    hasTopBar: false,
+    isDataSetEnabled: false,
+    isZoomEnabled: true,
+    width: '100%',
+    height: '100%',
+  };
+  return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>html,body{margin:0;padding:0;height:100%;background:${bg}}</style></head>
+<body><div class="tradingview-widget-container" style="height:100%;width:100%">
+<div class="tradingview-widget-container__widget"></div>
+<script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js" async>${JSON.stringify(config)}</script>
+</div></body></html>`;
 }
 
 export const TVChart: React.FC<TVWidgetProps> = ({ symbol, height = 380 }) => {
@@ -14,18 +57,12 @@ export const TVChart: React.FC<TVWidgetProps> = ({ symbol, height = 380 }) => {
   const colors = getThemeColors(theme);
   const containerRef = useRef<any>(null);
 
-  // LEGAL: Atribusi TradingView Widget wajib dicantumkan sesuai Terms of Service.
   useEffect(() => {
     if (Platform.OS !== 'web') return;
-
-    // Bersihkan kontainer jika ada sisa widget
-    if (containerRef.current) {
-      containerRef.current.innerHTML = '';
-    }
+    if (containerRef.current) containerRef.current.innerHTML = '';
 
     const script = document.createElement('script');
     script.src = 'https://s3.tradingview.com/tv.js';
-    script.type = 'text/javascript';
     script.async = true;
     script.onload = () => {
       // @ts-ignore
@@ -33,39 +70,37 @@ export const TVChart: React.FC<TVWidgetProps> = ({ symbol, height = 380 }) => {
         // @ts-ignore
         new TradingView.widget({
           width: '100%',
-          height: height,
+          height,
           symbol: `IDX:${symbol.toUpperCase()}`,
           interval: 'D',
           timezone: 'Asia/Jakarta',
-          theme: theme,
+          theme,
           style: '1',
           locale: 'id',
           toolbar_bg: colors.card,
           enable_publishing: false,
-          hide_side_toolbar: false,
           allow_symbol_change: true,
           container_id: `tv-chart-${symbol}`,
         });
       }
     };
-
     document.head.appendChild(script);
-
     return () => {
-      // Bersihkan script jika unmount
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
+      if (script.parentNode) script.parentNode.removeChild(script);
     };
   }, [symbol, theme]);
 
-  if (Platform.OS !== 'web') {
+  // Native: render via WebView.
+  if (Platform.OS !== 'web' && WebViewComp) {
     return (
-      <View style={[styles.mobileFallback, { height, backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.fallbackTitle, { color: colors.primary }]}>📊 Grafik TradingView Live (Web-Only)</Text>
-        <Text style={[styles.fallbackText, { color: colors.textSecondary }]}>
-          Widget grafik interaktif TradingView aktif saat Anda membukanya di browser web. Di mobile, Anda dapat melihat visualisasi SVG lokal kami di tab samping.
-        </Text>
+      <View style={[styles.webContainer, { height }]}>
+        <WebViewComp
+          originWhitelist={['*']}
+          source={{ html: chartHtml(symbol, theme, colors.background) }}
+          style={{ backgroundColor: colors.background }}
+          javaScriptEnabled
+          domStorageEnabled
+        />
       </View>
     );
   }
@@ -82,64 +117,44 @@ export const TVHeatmap: React.FC<{ height?: number }> = ({ height = 450 }) => {
   const colors = getThemeColors(theme);
   const containerRef = useRef<any>(null);
 
-  // LEGAL: Atribusi widget heatmap pasar TradingView sesuai Terms of Use.
   useEffect(() => {
     if (Platform.OS !== 'web') return;
-
-    if (containerRef.current) {
-      containerRef.current.innerHTML = '';
-    }
+    if (containerRef.current) containerRef.current.innerHTML = '';
 
     const script = document.createElement('script');
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js';
-    script.type = 'text/javascript';
     script.async = true;
     script.innerHTML = JSON.stringify({
-      relation: 'symbol',
-      groups: [
-        {
-          name: 'Indonesia Stocks',
-          symbols: [
-            { name: 'IDX:BBCA' },
-            { name: 'IDX:BBRI' },
-            { name: 'IDX:BMRI' },
-            { name: 'IDX:BBNI' },
-            { name: 'IDX:TLKM' },
-            { name: 'IDX:ASII' },
-            { name: 'IDX:ADRO' },
-            { name: 'IDX:BREN' },
-            { name: 'IDX:TPIA' },
-            { name: 'IDX:GOTO' },
-          ],
-        },
-      ],
+      dataSource: 'AllIDX',
+      blockSize: 'market_cap_basic',
+      blockColor: 'change',
+      grouping: 'sector',
       locale: 'id',
-      gridColor: 'rgba(240, 243, 250, 0.06)',
-      scaleCurve: 'rgba(0, 0, 0, 1)',
-      theme: theme,
+      colorTheme: theme,
+      hasTopBar: false,
+      isZoomEnabled: true,
       width: '100%',
-      height: height,
+      height,
     });
-
-    if (containerRef.current) {
-      containerRef.current.appendChild(script);
-    }
+    if (containerRef.current) containerRef.current.appendChild(script);
   }, [theme]);
 
-  if (Platform.OS !== 'web') {
+  // Native: render via WebView.
+  if (Platform.OS !== 'web' && WebViewComp) {
     return (
-      <View style={[styles.mobileFallback, { height, backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.fallbackTitle, { color: colors.primary }]}>🔥 Heatmap Pasar TradingView (Web-Only)</Text>
-        <Text style={[styles.fallbackText, { color: colors.textSecondary }]}>
-          Tampilan heatmap pasar interaktif TradingView aktif saat Anda membuka di web.
-        </Text>
+      <View style={[styles.webContainer, { height }]}>
+        <WebViewComp
+          originWhitelist={['*']}
+          source={{ html: heatmapHtml(theme, colors.background) }}
+          style={{ backgroundColor: colors.background }}
+          javaScriptEnabled
+          domStorageEnabled
+        />
       </View>
     );
   }
 
-  return (
-    <View style={[styles.webContainer, { height }]} ref={containerRef} />
-  );
+  return <View style={[styles.webContainer, { height }]} ref={containerRef} />;
 };
 
 const styles = StyleSheet.create({
@@ -148,23 +163,5 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     marginVertical: 8,
-  },
-  mobileFallback: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginVertical: 8,
-  },
-  fallbackTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  fallbackText: {
-    fontSize: 11,
-    textAlign: 'center',
-    lineHeight: 16,
   },
 });
