@@ -8,6 +8,10 @@ dist/
 build/
 *.tsbuildinfo
 
+# Web build served by API (generated in Docker build)
+apps/api/public/*
+!apps/api/public/.gitkeep
+
 # Expo
 .expo/
 .expo-shared/

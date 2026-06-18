@@ -31,8 +31,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.API_PORT || 4000;
-  await app.listen(port);
+  // Render/host menyuntik PORT; fallback ke API_PORT lalu 4000 untuk dev.
+  const port = process.env.PORT || process.env.API_PORT || 4000;
+  await app.listen(port, '0.0.0.0');
   console.log(`[IDX API] Server berjalan di http://localhost:${port}/api`);
   console.log(`[IDX API] Dokumentasi Swagger di http://localhost:${port}/api/docs`);
 }

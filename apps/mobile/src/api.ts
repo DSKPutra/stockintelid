@@ -1,11 +1,27 @@
 import { useAppStore } from './store';
 
 declare const process: any;
+declare const window: any;
 
-// Ambil base URL dari env Expo, fallback ke localhost:4000
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL 
-  ? `${process.env.EXPO_PUBLIC_API_BASE_URL}/api`
-  : 'http://localhost:4000/api';
+// Tentukan base URL API:
+// 1. Jika EXPO_PUBLIC_API_BASE_URL diisi -> pakai itu (mobile/device atau override).
+// 2. Jika web di host produksi (bukan localhost) -> same-origin '/api'
+//    (NestJS men-serve web build & API dari satu URL — lihat deploy Render).
+// 3. Selain itu -> dev localhost:4000.
+function resolveApiBase(): string {
+  const envBase = process.env.EXPO_PUBLIC_API_BASE_URL;
+  if (envBase) return `${envBase}/api`;
+  if (
+    typeof window !== 'undefined' &&
+    window.location &&
+    !/^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)
+  ) {
+    return '/api';
+  }
+  return 'http://localhost:4000/api';
+}
+
+const API_BASE_URL = resolveApiBase();
 
 console.log(`[API CLIENT] Menghubungkan ke API di: ${API_BASE_URL}`);
 

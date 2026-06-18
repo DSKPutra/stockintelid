@@ -1,0 +1,14 @@
+# Jangan kirim artefak lokal ke build context — semuanya dibangun ulang di image.
+node_modules
+**/node_modules
+dist
+**/dist
+.expo
+**/.expo
+apps/api/public
+web-build
+.git
+.github
+*.log
+.env
+.env.*

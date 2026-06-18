@@ -99,3 +99,28 @@ Untuk menambahkan grup bisnis baru ke dalam peta kepemilikan:
    ```
 3. Pastikan ticker-ticker baru tersebut juga didefinisikan dalam konstanta `MOCK_STOCKS`.
 4. Jalankan ulang server, skema database akan memperbarui datanya secara otomatis saat startup.
+
+---
+
+## ☁️ Deploy ke Publik (satu layanan)
+
+Aplikasi dibungkus jadi **satu layanan**: NestJS menyajikan build web Expo + API
+dari satu URL (`/` = aplikasi, `/api` = REST, `/api/docs` = Swagger). Lihat
+`Dockerfile` & `render.yaml`.
+
+### Render (Blueprint — gratis)
+1. Push repo ke GitHub (sudah).
+2. [Render Dashboard](https://dashboard.render.com) → **New + → Blueprint** →
+   connect repo `DSKPutra/stockintelid`. Render membaca `render.yaml` otomatis.
+3. **Apply** → Render build image dari `Dockerfile` lalu deploy. URL publik
+   muncul (mis. `https://stockintelid.onrender.com`).
+
+Env opsional di dashboard Render: `PRICE_PROVIDER` (`mock`/`api`),
+`PRICE_API_BASE_URL`/`PRICE_API_KEY`, `LLM_PROVIDER`/`LLM_API_KEY`.
+Catatan: paket gratis **tidur saat idle** (~15 mnt) dan butuh ~30 dtk untuk bangun.
+
+### Build image manual (host lain)
+```bash
+docker build -t stockintelid .
+docker run -p 4000:4000 stockintelid   # buka http://localhost:4000
+```
