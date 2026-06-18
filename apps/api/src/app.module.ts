@@ -4,6 +4,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
 import { StockModule } from './stock/stock.module';
+import { RealtimeModule } from './stock/realtime.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
 
 @Module({
@@ -20,6 +21,7 @@ import { ChatbotModule } from './chatbot/chatbot.module';
     }),
     AuthModule,
     StockModule,
+    RealtimeModule,
     ChatbotModule,
   ],
 })

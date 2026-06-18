@@ -11,12 +11,11 @@ declare const window: any;
 function resolveApiBase(): string {
   const envBase = process.env.EXPO_PUBLIC_API_BASE_URL;
   if (envBase) return `${envBase}/api`;
-  if (
-    typeof window !== 'undefined' &&
-    window.location &&
-    !/^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)
-  ) {
-    return '/api';
+  if (typeof window !== 'undefined' && window.location) {
+    // Jika tidak berjalan di Expo dev server (8081/8082), gunakan relative path '/api'
+    if (window.location.port !== '8081' && window.location.port !== '8082') {
+      return '/api';
+    }
   }
   return 'http://localhost:4000/api';
 }

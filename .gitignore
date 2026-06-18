@@ -47,3 +47,9 @@ coverage/
 
 # IDE files
 .claude/
+
+# Vercel web output (expo export)
+public_web/
+
+# Vercel CLI
+.vercel/

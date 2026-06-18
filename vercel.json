@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build:shared && npm run build --workspace @idx/api && cd apps/mobile && npx expo export --platform web --output-dir ../../public_web",
+  "outputDirectory": "public_web",
+  "functions": {
+    "api/[...path].js": {
+      "memory": 1024,
+      "maxDuration": 30,
+      "includeFiles": "{apps/api/dist/**,packages/shared/dist/**}"
+    }
+  }
+}
