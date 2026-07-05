@@ -1,5 +1,7 @@
 # StockIntelID — Platform Analisis Kepemilikan Saham IDX
 
+**🌐 Live:** https://stockintelid.netlify.app — web app (`/`) + REST API (`/api/*`) via Netlify Function.
+
 StockIntelID adalah platform kecerdasan kepemilikan (*ownership intelligence*) Bursa Efek Indonesia (IDX) berbasis **cross-platform** (iOS, Android, dan Web dari satu codebase). Aplikasi ini diinspirasi oleh konsep visual *ownership intelligence* (seperti peta kepemilikan KSEI, MSCI free-float screener, peta konglomerat, dan network graph relasi UBO-ke-ticker) dengan identitas visual violet-indigo/teal/amber yang orisinal dan modern.
 
 > ⚠️ **Disclaimer Hukum:** Platform ini dirancang murni sebagai alat informasi dan edukasi keuangan, bukan rekomendasi/ajakan transaksi jual atau beli efek keuangan. Keputusan investasi sepenuhnya merupakan tanggung jawab pengguna secara mandiri (DYOR). Data kepemilikan bersifat periodik (berdasarkan rilis KSEI/bulanan) dan bukan realtime.
@@ -102,13 +104,30 @@ Untuk menambahkan grup bisnis baru ke dalam peta kepemilikan:
 
 ---
 
-## ☁️ Deploy ke Publik (satu layanan)
+## ☁️ Deploy ke Publik
 
-Aplikasi dibungkus jadi **satu layanan**: NestJS menyajikan build web Expo + API
-dari satu URL (`/` = aplikasi, `/api` = REST, `/api/docs` = Swagger). Lihat
-`Dockerfile` & `render.yaml`.
+Tersedia tiga target deploy — pilih sesuai kebutuhan.
 
-### Render (Blueprint — gratis)
+### Netlify (LIVE — statis + serverless) ✅
+**https://stockintelid.netlify.app**. Web statis (Expo export) + NestJS sebagai
+**Netlify Function** (`netlify/functions/api.js`, via `serverless-http`). Config di
+`netlify.toml`. WebSocket tidak berlaku di serverless (UI tak memakainya). Deploy:
+push ke GitHub lalu import repo di Netlify, atau `netlify deploy --build`.
+
+### Render / Docker (satu layanan penuh + WebSocket)
+NestJS menyajikan build web Expo + API dari satu URL (`/` app, `/api` REST,
+`/api/docs` Swagger, `/ws/price` WebSocket). Lihat `Dockerfile` & `render.yaml`.
+
+1. Push repo ke GitHub (sudah).
+2. [Render Dashboard](https://dashboard.render.com) → **New + → Blueprint** →
+   connect repo `DSKPutra/stockintelid`. Render membaca `render.yaml` otomatis.
+3. **Apply** → Render build image dari `Dockerfile` lalu deploy.
+
+### Vercel (statis + serverless)
+Web statis + NestJS serverless function. Lihat `vercel.json` & `api/[...path].js`.
+Import repo di dashboard Vercel.
+
+_Referensi setup lama Render:_
 1. Push repo ke GitHub (sudah).
 2. [Render Dashboard](https://dashboard.render.com) → **New + → Blueprint** →
    connect repo `DSKPutra/stockintelid`. Render membaca `render.yaml` otomatis.
