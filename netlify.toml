@@ -1,0 +1,23 @@
+# Netlify config — StockIntelID: web statis (Expo export) + NestJS via Function.
+[build]
+  command = "npm run build:shared && npm run build --workspace @idx/api && cd apps/mobile && npx expo export --platform web --output-dir ../../public_web"
+  publish = "public_web"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+  # Sertakan output tsc yang di-require oleh function.
+  included_files = ["apps/api/dist/**", "packages/shared/dist/**"]
+
+# Semua /api/* diarahkan ke function NestJS (rewrite, bukan redirect).
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+# SPA fallback: sisanya dilayani index.html (app pakai routing di klien).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -53,3 +53,6 @@ public_web/
 
 # Vercel CLI
 .vercel/
+
+# Netlify
+.netlify/
